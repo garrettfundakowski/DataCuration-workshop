@@ -5,8 +5,8 @@ output:
   html_document:
     toc: true
     toc_float: true
-    highlight: breezedark
-    theme: superhero
+    highlight: kate
+    theme: flatly
     df_print: kable
 ---
 
@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 <img src='http://biotime.st-andrews.ac.uk/images/biologoOrig.png' alt='BioTIME logo' height='200' />
 
-## Intro to BioTIME and data curation
+## Introduction
 
 BioTIME is an open-access database for long-term assemblage data contributed from research groups globally. The power of our database is quite literally in the numbers. We currently have:
 
@@ -44,7 +44,7 @@ Before we start, here are some terms we use to describe dataset/sampling design 
 - **Plot**: a subsetted location within the site that may or may not be sampled through time consistently. Transects, trawls, or quadrats fall under this definition. Not all datasets will have information at the plot level and that's ok.
 *If a site contains plots that have all been sampled consistently through time (e.g. some plots were not left out/added in some years), we still call the aggregate of plots as a site.*
 
-## Setup {.tabset}
+## Setup {.tabset .tabset-pills}
 
 There are a few things to set up before we start curating. If you want to learn to implement version control with Git and GitHub in RStudio, get set up with these steps, but this is elective and the following instructions will work without versioning as well.
 
@@ -60,16 +60,19 @@ If you've never used Git in RStudio before, you'll need to configure GitHub and 
 `git config --global user.email "youremail@st-andrews.ac.uk"`
 `git config --global user.name "username"`
 
-#### RStudio repository project
-4. And now we're ready to clone! Go to *File > New Project > Version Control*. 
+#### Clone a repo
+4. And now we're ready to clone! Go to *File > New Project > Version Control*. In Repository URL, put `https://github.com/bioTIMEHub/DataCuration-workshop.git` and the directory you want the local repository copy to go.
 
+This is now set up! Git controls are located in the Git tab next to *Help*. Whenever you save your R script (or make significant changes), **stage, commit, and push** your changes to the GitHub repository. 
+
+**Staging** tells your computer's Git software to detect the code lines that changed. **Committing** tells Git to log the current state, while **pushing** communicates with GitHub's cloud to save your commits to the cloud. This way, your collaborators can then see and maybe build on your progress. Regular commits and pushes keeps a good record of your changes and you can revert if anything goes wrong (similar to Google Drive).
 
 ### R Script
 let's load our necessary packages and import the dataset we'll be working on. Depending on your coding style and preferences, we'll be showing examples with both base R and `tidyverse` functions, but some tasks like taxonomy fixes will rely more heavily on packages. If you don't have these packages, run `install.packages(c('tidyverse', 'readxl', 'maps'))` in your console.
 
 **Download this dataset is on arachnids/spiders from the Hoge Kempen National Park located in Belgium: [click here](https://universityofstandrews907-my.sharepoint.com/:x:/g/personal/fycc1_st-andrews_ac_uk/ETyEHl_jDy5OuNMwIczd60MBF445_UP5_p5NBG2ERNrxMA?e=ojuIPt)**
 
-```{r Setup, results='hide', messages=F}
+```{r Setup, results='hide', message=F}
 # load the required packages
 require(tidyverse)
 require(readxl)
@@ -110,11 +113,12 @@ n_distinct(dt$year) >= 2
 Also, before we move forward, have a look at the data template/format we want this dataset to reflect. Familiarising yourself with this will be helpful to know what fields need to be transformed, added, or omitted to fit this. Even if the dataset does not have all the data to fill these fields, they need to be put in as blank columns. * *StudyID is left as a blank column to be automatically filled in when we add this to the database server. Don't worry about it.*
 
 **Table 1**: BioTIME raw data template format.
-Abundance	| Biomass	| Family | Genus | Species | SampleDescription | Plot | Latitude | Longitude	| DepthElevation	| Day | Month	| Year | StudyID
-----------|---------|--------|-------|---------|-------------------|------|----------|------------|-----------------|-----|-------|------|--------
-          |         |        |       |         |                   |      |          |            |                 |     |       |      |        
 
-## Overall checks {.tabset}
+| Abundance | Biomass | Family | Genus | Species | SampleDescription | Plot | Latitude | Longitude | DepthElevation | Day | Month | Year | StudyID |
+|-----------|---------|--------|-------|---------|-------------------|------|----------|-----------|----------------|-----|-------|------|---------|
+|           |         |        |       |         |                   |      |          |           |                |     |       |      |         |
+
+## Overall checks {.tabset .tabset-pills}
 
 And like most work dealing with datasets, it's good to look at the basic structure before we do anything. I'll show you how we check this, but try and think about how you might fix these issues before clicking onto the fix tab.
 
@@ -176,7 +180,7 @@ dt$Group <- NULL
 colnames(dt)[1] <- 'Year'
 ```
 
-## Primary fields {.tabset}
+## Primary fields {.tabset .tabset-pills}
 
 To check primary fields (abundance, coordinates, and dates), we just need to make sure that:
 - Fields don't contain blanks, zeroes, negative values, NAs, or NaNs
@@ -215,7 +219,7 @@ dt$Longitude <- as.numeric(rep('5.626', nrow(dt)))
 We'll also plot this to visually confirm that the coordinates are as expected. Often times people might switch longitude with latitude and still be logical, real coordinates to our code.
 
 ### Plot
-``` {r Coord plot, echo = FALSE}
+``` {r Coord plot, echo = FALSE, message=F, warning = F, error= F}
 world_map <- map_data('world') # check whether the GPS coordinates match expectations
 world <- ggplot(world_map) + 
   geom_polygon(aes(x=long, y=lat, group=group), color='grey', fill='transparent') +
@@ -285,13 +289,13 @@ Now, we check the taxonomic fields. From experience, this is where the bulk of d
 
 #### Naming conventions
 
-**Uncertain or unidentified IDs**: "Genus sp" (without the full stop/period) or if the dataset distinguishes between different uncertain IDs, "Genus sp1" and "Genus sp2"
-**No subspecies or varieties**: Lowest level = "Genus species"
-**Species groups**: Some taxa are less resolved and are placed into aggregates. We denote this with "agg."
+**Uncertain or unidentified IDs**: "Genus sp" (without the full stop/period) or if the dataset distinguishes between different uncertain IDs, "Genus sp1" and "Genus sp2"  
+**No subspecies or varieties**: Lowest level = "Genus species"  
+**Species groups**: Some taxa are less resolved and are placed into aggregates. We denote this with "agg."  
 
-***Reminder**: For `Species`, we only leave in species epithets! Don't put it into the usual *Genus species* convention.
+*Reminder*: For `Species`, we only leave in species epithets! Don't put it into the usual *Genus species* convention.
 
-``` {r Taxa check}
+``` {r Taxa check, }
 dt$Species <- dt$Taxon # always work from a copy
 # check that genera are genera, not family names (-idae/eae)
 dt %>% filter(str_detect(Species, 'idae$|eae$'))
