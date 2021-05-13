@@ -29,11 +29,12 @@ But in order for data to be useful and comparable in our database, we need to ch
 
 ## Objectives
 
-Hopefully, by the end of this workshop, you'll be able to:
-- Learn how to validate and check large datasets using R
-- Use data wrangling to rectify any issues that come up in data checking
-- Aggregate and omit data records, join and manipulate data tables
-- Integrate version control using the RStudio Git interface
+Hopefully, by the end of this workshop, you'll be able to:  
+
+* Learn how to validate and check large datasets using R  
+* Use data wrangling to rectify any issues that come up in data checking  
+* Aggregate and omit data records, join and manipulate data tables  
+* Integrate version control using the RStudio Git interface  
 
 ## Definitions
 Before we start, here are some terms we use to describe dataset/sampling design elements:
