@@ -1,41 +1,34 @@
-# Repo name
+# BioTIME Data Curation Workshop
 ### Description for project here
   
-**Paper**: The paper title for this project  
-**Authors**:   
-**Corresponding author**: [Name here](mailto:name@email.com)
+**Authors**: Cher Chow, Viviana Brambilla, Ada Fontrodona Eslava, Laura Antao  
+**Contact**: Any questions you have can be directed to the [BioTIME Core Team](mailto:biotimeproj@st-andrews.ac.uk)
   
 [![CC BY-SA 4.0][cc-by-sa-shield]][cc-by-sa]  
   
-A brief summary about this repo and global info that applies to the whole repository. If you see this for an actual repository, that's because scientists are frazzled and busy and forgot to change this readme :) 
+This repository is short and sweet for workshops on dataset curation for the BioTIME database. 
 
 ---
   
 ## Requirements
 
-List required specs, software, packages here.
+Following along with the workshop documents will require:
+- R (preferably 3.8 +)
+- RStudio
+- R packages `tidyverse, readxl,` and `maps`
 
-## Repository structure
-
-Break down what files do.
-
-### Folder
-**`Filename.txt`** Describe the function of this file
-
+**Optional**:
+- locally installed [Git](https://git-scm.com/downloads) (version control software)
+- GitHub account
 
 ## How to use
 
-Give some instructions here if needed
+This workshop tutorial is written primarily in R and Markdown. Open up either the `.Rmd` or rendered `.html` file to follow along the descriptions, instructions, and break-downs to data wrangling, cleaning, and preparing dataset files. Some code chunks will be put in for the purpose of showing you what we might do in hypothetical situations, but not to be run/evaluated.
+
+Before beginning, make sure the required software packages listed above are installed.
 
 ---
 
-## Acknowledgments
-
-Thank you to these people listed:
-
-## Citation
-
-To make sure people attribute the paper this repository is linked to.
 
 This work is licensed under a
 [Creative Commons Attribution-ShareAlike 4.0 International License][cc-by-sa].  

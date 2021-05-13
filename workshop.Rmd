@@ -1,5 +1,5 @@
 ---
-title: "BioTIME Data Curation"
+title: "Data Curation Workshop"
 author: "BioTIME Core Team"
 output: 
   html_document:
@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-BioTIME is an open-access database for long-term assemblage data contributed from research groups globally. The power of our database is quite literally in the numbers. We currently have:
+**[BioTIME](http://biotime.st-andrews.ac.uk)** is an open-access database for long-term assemblage data contributed from research groups globally. The power of our database is quite literally in the numbers. We currently have:
 
 #### 443 studies
 #### 12,964,172 records
@@ -30,9 +30,9 @@ But in order for data to be useful and comparable in our database, we need to ch
 ## Objectives
 
 Hopefully, by the end of this workshop, you'll be able to:
-- Learn how to validate and check large datasets
+- Learn how to validate and check large datasets using R
 - Use data wrangling to rectify any issues that come up in data checking
-- Manipulate, aggregate, omit data records
+- Aggregate and omit data records, join and manipulate data tables
 - Integrate version control using the RStudio Git interface
 
 ## Definitions
@@ -42,6 +42,7 @@ Before we start, here are some terms we use to describe dataset/sampling design 
 - **Observation event / Sample ID/ Unique sampling event**: unique combination of date & latitude & longitude or date & plot (& depth or elevation if applicable), when not defined otherwise.
 - **Site**: smallest possible area that has been repeatedly sampled through time in the dataset.  
 - **Plot**: a subsetted location within the site that may or may not be sampled through time consistently. Transects, trawls, or quadrats fall under this definition. Not all datasets will have information at the plot level and that's ok.
+- **Grain size**: The area covered by each sampling event. If a dataset incorporates plots, the area of the plot would be the grain size. At the site level, we often need this provided through methods.  
 *If a site contains plots that have all been sampled consistently through time (e.g. some plots were not left out/added in some years), we still call the aggregate of plots as a site.*
 
 ## Setup {.tabset .tabset-pills}
@@ -100,7 +101,7 @@ Here are the detailed methods provided to use by the dataset author. Do you thin
 > Pitfall traps were installed in different UTM plots in the NPHK (50 km^2^), which consists different habitats (see description habitats). Traps were left on location for approximately one month, then emptied and refilled. Per location spring - summer, but not every location yearly (see dataset). In different UTM grids, different habitats were sampled several times over the period of 30 years (1986 - 2017)
 This dataset includes only heathland from the UTM FS8546 grid for temporal regularity (see Pilotto et al. https://doi.org/10.1038/s41467-020-17171)
 
-Now let's use R to help us check the first criteria:
+Let's use R to help us check the first criteria:
 
 ```{r Duration criteria}
 # are there 2 or more unique years in the dataset?
@@ -114,9 +115,7 @@ Also, before we move forward, have a look at the data template/format we want th
 
 **Table 1**: BioTIME raw data template format.
 
-| Abundance | Biomass | Family | Genus | Species | SampleDescription | Plot | Latitude | Longitude | DepthElevation | Day | Month | Year | StudyID |
-|-----------|---------|--------|-------|---------|-------------------|------|----------|-----------|----------------|-----|-------|------|---------|
-|           |         |        |       |         |                   |      |          |           |                |     |       |      |         |
+<img src='images/Template.png' alt='Final template format example' />
 
 ## Overall checks {.tabset .tabset-pills}
 
@@ -248,23 +247,24 @@ detach('package:maps')
 
 ## Secondary fields
 
-Sometimes data will have trawl, plot, depth, bottomdepth or similar secondary fields. They must be inspected but we don't always want to remove records that have errors in these fields. It will depend on the type of error.**The premise when tidying these fields is that values make sense and are in accordance with the source methods description.** It'll often vary on a case by case basis and require executive judgement by the curator.
+Sometimes data will have trawl, plot, depth, bottom depth or similar secondary fields. They must be inspected but we don't always want to remove records that have errors in these fields. It will depend on the type of error.**The premise when tidying these fields is that values make sense and are in accordance with the source methods description.** It'll often vary on a case by case basis and require executive judgement by the curator.
 
 **Criteria:**
 
 - If the error (e.g. a NULL) makes it impossible to assign the value to a group, then remove it.
 - If the error is a misspelling or a missing value that can be clearly re-assigned by reading the methods, then do not remove the record and fix it in the appropriate way.
 
-```{r, echo=TRUE, message=FALSE, results=TRUE, warning=FALSE}
+```{r, eval=F, message=FALSE, results=TRUE, warning=FALSE}
 
 # Plot and treatment must be inspected for NA, NULL, blank or values unspecified in source methods
 # We must check for misspellings and revalue levels if needed
 
 # For this, we can use:
-# E.g. use: sort(unique(dt$plot)) and rename levels using:
-# levels(dt$plot) <- plyr::revalue(levels(dt$plot), c("old_name"="new_name"))
-
-#### Numeric/integer fields ####
+sort(unique(dt$plot))
+# and rename levels using:
+levels(dt$plot) <- plyr::revalue(levels(dt$plot),
+                                 c("old_name"="new_name",
+                                   "old_name1"="new_name1"))
 
 # Repeat processes used for primary fields.
 # DepthElevation can be 0, but not NaN, NA, NULL or blank only in some records.
@@ -275,7 +275,7 @@ Sometimes data will have trawl, plot, depth, bottomdepth or similar secondary fi
 
 Now, we check the taxonomic fields. From experience, this is where the bulk of data curation efforts go toward because taxonomy/species IDs are messy and data aren't perfect. `stringr` is a great package to use for automating detecting patterns in text strings. It comes in handy for replacements too. I refer [to this cheatsheet](http://edrub.in/CheatSheets/cheatSheetStringr.pdf) a lot. But for visual checking of typos, this is largely by eye.
 
-#### Cleaning and checking objectives
+### Cleaning and checking objectives
 
 - Eliminate blanks, NAs (but uncertain IDs up to family level are allowed), and zeroes.
 - Fit uncertain IDs to our syntax or eliminate abbreviations that dataset contributors used.
@@ -283,15 +283,15 @@ Now, we check the taxonomic fields. From experience, this is where the bulk of d
 - Remove non-organismal records (e.g. rock, sand) and incidental taxa records.
 - Check that genus column doesn't have family names (end in *-eae* or *-idae*) or species column has genus names.
 - Re-allocate taxonomic classifications into the appropriate column.
-- Check for duplication and misspellings in the species names  (e.g. *Puffinus spp. / Puffinus sp.*; unidentified/unknown; *Buenia jeffreysi / Buenia jeffreysii*; double spacing; several spaces, authors name & date, etc.). We're not validating or updating species.
+- Check for duplication and misspellings in the species names  (e.g. *Puffnius sp, Puffinus sp*; unidentified/unknown; *Buenia jeffreysi / Buenia jeffreysii*; double spacing; several spaces, authors name & date, etc.). We're not validating or updating species, but we do quick searches in Google Scholar to figure out which spelling is correct.
 - Subspecies and annotated species names should be disregarded (e.g. *Amphiura (acrocnida) brachiate* should be considered as *Acrocnida brachiate*)
 - If a record only has data until the genus level, it must have "sp" in species column.
 
-#### Naming conventions
+### Nomenclature
 
-**Uncertain or unidentified IDs**: "Genus sp" (without the full stop/period) or if the dataset distinguishes between different uncertain IDs, "Genus sp1" and "Genus sp2"  
+**Uncertain or unidentified IDs**: "Genus sp" (without the full stop/period). If the dataset distinguishes between different uncertain IDs, we reformat them while making sure they're recognised as separate species: like "Genus sp1" and "Genus sp2"  
 **No subspecies or varieties**: Lowest level = "Genus species"  
-**Species groups**: Some taxa are less resolved and are placed into aggregates. We denote this with "agg."  
+**Species groups**: Some taxa are less resolved and are placed into species complexes, e.g. *Dascyllus trimaculatus agg.* or *Rubus fruticosus agg.*. We denote this with "agg." to make sure it's not confused with other specific epithets. Uncertain IDs with several potential options do not count.  
 
 *Reminder*: For `Species`, we only leave in species epithets! Don't put it into the usual *Genus species* convention.
 
@@ -332,9 +332,7 @@ dt$Taxon <- NULL # get rid of it now that we've split and fixed
 
 Now that everything has been checked and fixed, we can prepare the dataframe to look more like our target format and export! As a reminder, this is what we want:
 
-Abundance	| Biomass	| Family | Genus | Species | SampleDescription | Plot | Latitude | Longitude	| DepthElevation	| Day | Month	| Year | StudyID
-----------|---------|--------|-------|---------|-------------------|------|----------|------------|-----------------|-----|-------|------|--------
-          |         |        |       |         |                   |      |          |            |                 |     |       |      | 
+<img src='images/Template.png' alt='Final template format example' />
           
 
 We have to create a lot of blank columns, aggregate abundances according to site, plot, latitude, longitude, and date. This way we have one data record per species per sampling event. `SampleDescription` will also reflect this unique sampling event in a string.
