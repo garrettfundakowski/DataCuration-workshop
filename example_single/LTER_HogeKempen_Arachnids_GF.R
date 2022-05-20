@@ -112,7 +112,7 @@ points_zoom
 dt$Species <- dt$Taxon # make a copy
 # check that genera are genera, not family names (-idae/eae)
 # this returns the record index number if there are any
-str_which(dt$Species, 'idae$|eae$')
+str_which(dt$Species, 'idae$|eae$') # not sure that this does what it is supposed to, but easy to visually inspect here
 
 # check the species list for misspellings or non-BioTIME taxonomic convention names
 # Do visual checks before splitting taxa up into the three columns.
@@ -132,28 +132,27 @@ replace_g <- c(
   'Tenuiphanthes' = 'Tenuiphantes'
 )
 replace_f <- c(
-  'Theidiidae' = 'Theridiidae'
+  'Theidiidae' = 'Theridiidae',
   #opliones = opiliones but also this is an order?
-  #opliones = 61 -> nemastomatidae
-  #oplionidae = 99, 646 -> phalangiidae
+  #opliones = 61 -> nemastomatidae via backtracing species to family
+  'Opliones' = 'Nemastomatidae',
+  #oplionidae = 99, 646 -> phalangiidae via backtracing species to family, but will just correct spelling as opilionidae was a recognized family before
+  'Oplionidae' = 'Opilionidae'
 )
-replace_s <- c(
-  'nigrum brevisetorum' = 'nigrum' #this is a weird case of females are nigbr and males are either nig or bre
-)
-
 
 # separate taxon names - at the moment Species is 'genus species subspecies'
 dt$Genus <- word(dt$Species, 1) # this will just copy over genus
 dt$Species <- word(dt$Species, start=2) # this will eliminate any subspecies and just keep the species name
 
+#replace misspellings
+dt$Genus <- str_replace_all(dt$Genus, replace_g)
+dt$Family <- str_replace_all(dt$Family, replace_f)
+dt$Taxon <- NULL # get rid of it now that we've split and checked
+
+
 #check again for mispellings
 sort(unique(dt$Genus))
 sort(unique(dt$Species))
-
-dt$Genus <- str_replace_all(dt$Genus, replace_g)
-dt$Taxon <- NULL # get rid of it now that we've split and checked
-
-# check family too
 sort(unique(dt$Family))
 
 # Prepare raw data --------------------------------------------------------
@@ -173,7 +172,10 @@ dt_merged <- dt %>% group_by(Biomass, Family, Genus, Species, SampleDescription,
   summarise(Abundance=sum(Abundance)) %>% ungroup() %>% arrange(Year, Family, Genus, Species)
 dim(dt)[1]-dim(dt_merged)[1] # any change in aggregating? yep. 1229 rows lost
 
+# save the dataset name as an object so we save some typing
 dataset.name <- 'LTER_HogeKempenNationalPark_Arachnids'
+# put in as many non-blank fields unique to the sampling event
+# If plot, depthelevation, month, and day are available, I'd add those in too
 dt_merged$SampleDescription <- as.factor(with(dt_merged, paste(dataset.name, Latitude, Longitude, Year, sep='_')))
 length(levels(dt_merged$SampleDescription)) # 10 samples
 
@@ -199,7 +201,7 @@ str(dt_merged)
 # Export final ------------------------------------------------------------
 
 setwd(file.choose() %>% dirname())
-write.csv(dt_merged, paste0(getwd(), dataset.name, '_rawdata_CC.csv'), row.names=F)
+write.csv(dt_merged, paste0(getwd(), dataset.name, '_rawdata_GF.csv'), row.names=F)
 
 
 # Convex Hull for centroid ------------------------------------------------
@@ -208,8 +210,9 @@ write.csv(dt_merged, paste0(getwd(), dataset.name, '_rawdata_CC.csv'), row.names
 require(sp)
 require(rgeos)
 require(clipr)
-clipr::write_clip(dt_merged)
 
+#  line to copy the raw data directly to your clipboard for pasting into Excel :)
+clipr::write_clip(dt_merged)
 
 ##1. Convert data points into point spatial object
 # this also transforms it from WGS84 coordinate reference to a mercator projection in km for calculating area in sq km
